@@ -1,5 +1,5 @@
 {
-  "name": "@dteviot/web_to_epub",
+  "name": "@marcussacana/web_to_epub",
   "version": "1.0.0",
   "description": "Extension for Chrome and Firefox that converts a story on Baka-Tsuki (or a number of other sites) into an EPUB.",
   "dependencies": {
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dteviot/WebToEpub.git"
+    "url": "git+https://github.com/marcussacana/WebToEpub.git"
   },
   "keywords": ["epub"],
   "author": {
@@ -115,6 +115,6 @@
   "bugs": {
     "url": "https://github.com/dteviot/WebToEpub/issues"
   },
-  "homepage": "https://github.com/dteviot/WebToEpub#readme",
+  "homepage": "https://github.com/marcussacana/WebToEpub#readme",
   "private": true
 }
