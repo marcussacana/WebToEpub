@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "WebToEpub",
+  "name": "WebToEpub Marcussacana",
   "version": "1.0.8.6",
   "default_locale": "en",
   "icons": {
@@ -27,7 +27,7 @@
   "incognito": "split",
   "browser_specific_settings": {
     "gecko": {
-      "id": "WebToEpub@Baka-tsuki.org",
+      "id": "WebToEpub@marcussacana.github.io",
       "strict_min_version": "115.0"
     }
   },
