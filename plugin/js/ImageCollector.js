@@ -335,26 +335,22 @@ class ImageCollector {
             {
                 let c = document.createElement("canvas");
                 let ctx = c.getContext("2d");
-                let maxResolution = that.userPreferences.compressImagesMaxResolution.value;            
+                let maxResolution = that.userPreferences.compressImagesMaxResolution.value;   
+
+                c.height = imageInfo.height;
+                c.width = imageInfo.width;                
                 
-                if (compress) {
-                    if (imageInfo.height > maxResolution || imageInfo.width > maxResolution)
+                if (compress && (imageInfo.height > maxResolution || imageInfo.width > maxResolution))
+                {
+                    if (imageInfo.height > imageInfo.width)
                     {
-                        if (imageInfo.height > imageInfo.width)
-                        {
-                            c.height = maxResolution;
-                            c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0)/maxResolution)));
-                        }
-                        else
-                        {
-                            c.width = maxResolution;
-                            c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0)/maxResolution)));
-                        }
+                        c.height = maxResolution;
+                        c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0)/maxResolution)));
                     }
                     else
                     {
-                        c.height = imageInfo.height;
-                        c.width = imageInfo.width;
+                        c.width = maxResolution;
+                        c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0)/maxResolution)));
                     }
                 }
                 
