@@ -21,7 +21,7 @@ class ImageCollector {
     static StubCollector() {
         return {
             coverImageInfo: null,
-            imagesToPackInEpub: function() { return []; }
+            imagesToPackInEpub: function () { return []; }
         };
     }
 
@@ -64,7 +64,7 @@ class ImageCollector {
             } else {
                 this.imagesToFetch.push(imageInfo);
             }
-        }           
+        }
         this.urlIndex.set(wrappingUrl, index);
         this.urlIndex.set(sourceUrl, index);
         if (dataOrigFileUrl != null) {
@@ -146,7 +146,7 @@ class ImageCollector {
         return ImageCollector.toHex(byteArray.length) + ImageCollector.toHex(hash);
     }
 
-    
+
     /** Convert integer to 8 character Hex value
     * @private
     */
@@ -210,7 +210,7 @@ class ImageCollector {
     isImageWrapperElement(element) {
         return ((element.tagName.toLowerCase() === "div") &&
             ((element.className === "thumb tright") || (element.className === "floatright") ||
-            (element.className === "thumb") || (element.className === "floatleft")));
+                (element.className === "thumb") || (element.className === "floatleft")));
     }
 
     findImagesUsedInDocument(content) {
@@ -284,7 +284,7 @@ class ImageCollector {
         }
         return null;
     }
-    
+
     /**  Update image tags, point to image file in epub
     * @param {element} element containing <img> tags to update
     */
@@ -299,16 +299,16 @@ class ImageCollector {
     getImageDimensions(imageInfo) {
         return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
             let img = new Image();
-            let options = {type: imageInfo.mediaType};
+            let options = { type: imageInfo.mediaType };
             let blob = new Blob([new Uint8Array(imageInfo.arraybuffer)], options);
             let dataUrl = URL.createObjectURL(blob);
-            img.onload = function() {
+            img.onload = function () {
                 imageInfo.height = img.height;
                 imageInfo.width = img.width;
                 URL.revokeObjectURL(dataUrl);
                 resolve(img);
             };
-            img.onerror = function() {
+            img.onerror = function () {
                 // If the image gives an error then set a general height and width
                 imageInfo.height = 1200;
                 imageInfo.width = 1600;
@@ -321,51 +321,32 @@ class ImageCollector {
     }
 
     runCompression(imageInfo, img) {
-        return new Promise((resolve, reject) => {
-            if (this.userPreferences.compressImages.value) 
-            {
-                let outputType = "image/jpeg";
-                switch (this.userPreferences.compressImagesType.value) {
-                    case "auto":
-                        outputType = util.detectMimeType(imageInfo.getBase64(25));
-                        break;
-                    case "webp":
-                        outputType = "image/webp";
-                        break;
-                    case "png":
-                        outputType = "image/png";
-                        break;
-                    case "jpg":
-                    default:
-                        outputType = "image/jpeg";
-                        break;
-                }
-
-                if (imageInfo.isCover && this.userPreferences.compressImagesJpgCover.value)
-                {
-                    outputType = "image/jpeg";
-                }
+        var that = this;
+        return new Promise(function (resolve, reject) {
+            if (that.userPreferences.compressImages.value) {
                 let c = document.createElement("canvas");
                 let ctx = c.getContext("2d");
-                let maxResolution = this.userPreferences.compressImagesMaxResolution.value;            
-                if (imageInfo.height > maxResolution || imageInfo.width > maxResolution)
-                {
-                    if (imageInfo.height > imageInfo.width)
-                    {
-                        c.height = maxResolution;
-                        c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0)/maxResolution)));
+                let maxResolution = this.userPreferences.compressImagesMaxResolution.value;
+
+                if (compress) {
+                    if (imageInfo.height > maxResolution || imageInfo.width > maxResolution) {
+                        if (imageInfo.height > imageInfo.width) {
+                            c.height = maxResolution;
+                            c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0) / maxResolution)));
+                        }
+                        else {
+                            c.width = maxResolution;
+                            c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0) / maxResolution)));
+                        }
                     }
-                    else
-                    {
-                        c.width = maxResolution;
-                        c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0)/maxResolution)));
+                    else {
+                        c.height = imageInfo.height;
+                        c.width = imageInfo.width;
                     }
                 }
-                else
-                {
-                    c.height = imageInfo.height;
-                    c.width = imageInfo.width;
-                }
+
+                let mime = compress ? "image/jpeg" : "image/png";
+
                 ctx.drawImage(img, 0, 0, c.width, c.height);
                 c.toBlob(async (cBlob) => {
                     try {
@@ -378,193 +359,190 @@ class ImageCollector {
                         reject();
                     }
                 }, outputType, 0.9);
-            }
-            else
-            {
-                resolve();
-            }
+            }, mime, compress ? 0.9 : 1);
+    }
+            else {
+    resolve();
+}
         });
     }
 
     async fetchImage(imageInfo, progressIndicator, parentPageUrl) {
-        try
+    try {
+        let initialUrl = this.initialUrlToTry(imageInfo);
+        this.urlIndex.set(initialUrl, imageInfo.index);
+        let fetchOptions = { errorHandler: new FetchImageErrorHandler(parentPageUrl) };
+        let xhr = await HttpClient.wrapFetch(initialUrl, fetchOptions);
+        xhr = await this.findImageFileUrl(xhr, imageInfo, imageInfo.dataOrigFileUrl, fetchOptions);
+        imageInfo.mediaType = xhr.contentType;
+        imageInfo.arraybuffer = xhr.arrayBuffer;
+        this.fixupInvalidMediaType(imageInfo);
         {
-            let initialUrl = this.initialUrlToTry(imageInfo);
-            this.urlIndex.set(initialUrl, imageInfo.index);
-            let fetchOptions = {errorHandler: new FetchImageErrorHandler(parentPageUrl) };
-            let xhr = await HttpClient.wrapFetch(initialUrl, fetchOptions);
-            xhr = await this.findImageFileUrl(xhr, imageInfo, imageInfo.dataOrigFileUrl, fetchOptions);
-            imageInfo.mediaType = xhr.contentType;
-            imageInfo.arraybuffer = xhr.arrayBuffer;
-            this.fixupInvalidMediaType(imageInfo);
-            {
-                let img = await this.getImageDimensions(imageInfo);
-                await this.runCompression(imageInfo, img);
-            }
-            progressIndicator();
-            this.addToPackList(imageInfo);
+            let img = await this.getImageDimensions(imageInfo);
+            await this.runCompression(imageInfo, img);
         }
-        catch (error)
-        {
-            // ToDo, implement error handler.
-            this.imagesToPack.push(imageInfo);
-            ErrorLog.log(error);
-        }
+        progressIndicator();
+        this.addToPackList(imageInfo);
     }
+    catch (error) {
+        // ToDo, implement error handler.
+        this.imagesToPack.push(imageInfo);
+        ErrorLog.log(error);
+    }
+}
 
-    fixupInvalidMediaType(imageInfo) {
-        if (!imageInfo.mediaType?.startsWith("image")) {
-            imageInfo.mediaType = util.detectMimeType(imageInfo.getBase64(25));
-            if (imageInfo.mediaType == null)
-            {
-                let path = new URL(imageInfo.sourceUrl).pathname;
-                let index = path.lastIndexOf(".");
-                let format = (index < 0)
-                    ? "jpeg"
-                    : path.substring(index + 1);
-                imageInfo.mediaType = "image/" + format;
-            }
+fixupInvalidMediaType(imageInfo) {
+    if (!imageInfo.mediaType?.startsWith("image")) {
+        imageInfo.mediaType = util.detectMimeType(imageInfo.getBase64(25));
+        if (imageInfo.mediaType == null) {
+            let path = new URL(imageInfo.sourceUrl).pathname;
+            let index = path.lastIndexOf(".");
+            let format = (index < 0)
+                ? "jpeg"
+                : path.substring(index + 1);
+            imageInfo.mediaType = "image/" + format;
         }
     }
+}
 
     async findImageFileUrl(xhr, imageInfo, dataOrigFileUrl, fetchOptions) {
-        // with Baka-Tsuki, the link wrapping the image will return an HTML
-        // page with a set of images.  We need to pick the desired image
-        if (xhr.isHtml()) {
-            // find URL of wanted image file on html page
-            // if we can't find one, just use the original image.
-            let temp = this.selectImageUrlFromImagePage(xhr.responseXML);
-            if (temp == null) {
-                if (dataOrigFileUrl != null) {
-                    return await this.findImageFileUrlUsingDataOrigFileUrl(imageInfo);
-                }
-                if (!this.userPreferences?.disableImageResError?.value) {
-                    let baseUri = xhr.responseXML.baseURI;
-                    let errorMsg = UIText.Error.gotHtmlExpectedImageWarning(baseUri);
-                    ErrorLog.log(errorMsg);
-                }
-                temp = imageInfo.sourceUrl;
+    // with Baka-Tsuki, the link wrapping the image will return an HTML
+    // page with a set of images.  We need to pick the desired image
+    if (xhr.isHtml()) {
+        // find URL of wanted image file on html page
+        // if we can't find one, just use the original image.
+        let temp = this.selectImageUrlFromImagePage(xhr.responseXML);
+        if (temp == null) {
+            if (dataOrigFileUrl != null) {
+                return await this.findImageFileUrlUsingDataOrigFileUrl(imageInfo);
             }
-            temp = ImageCollector.removeSizeParamsFromWordPressQuery(temp);
-            this.urlIndex.set(temp, imageInfo.index);
-            return HttpClient.wrapFetch(temp, fetchOptions);
-        } else {
-            // page wasn't HTML, so assume is actual image
-            imageInfo.sourceUrl = xhr.response.url;
-            this.urlIndex.set(xhr.response.url, imageInfo.index);
-            return xhr;
+            if (!this.userPreferences?.disableImageResError?.value) {
+                let baseUri = xhr.responseXML.baseURI;
+                let errorMsg = UIText.Error.gotHtmlExpectedImageWarning(baseUri);
+                ErrorLog.log(errorMsg);
+            }
+            temp = imageInfo.sourceUrl;
         }
+        temp = ImageCollector.removeSizeParamsFromWordPressQuery(temp);
+        this.urlIndex.set(temp, imageInfo.index);
+        return HttpClient.wrapFetch(temp, fetchOptions);
+    } else {
+        // page wasn't HTML, so assume is actual image
+        imageInfo.sourceUrl = xhr.response.url;
+        this.urlIndex.set(xhr.response.url, imageInfo.index);
+        return xhr;
     }
+}
 
     async findImageFileUrlUsingDataOrigFileUrl(imageInfo) {
-        let xhr = await HttpClient.wrapFetch(imageInfo.dataOrigFileUrl);
-        return await this.findImageFileUrl(xhr, imageInfo, null);
-    }
-    
-    imagesToPackInEpub() {
-        return this.imagesToPack;
-    }
+    let xhr = await HttpClient.wrapFetch(imageInfo.dataOrigFileUrl);
+    return await this.findImageFileUrl(xhr, imageInfo, null);
+}
 
-    /*
-    *  Hook point to allow picking between high and low res images.
-    */
-    initialUrlToTry(imageInfo) {
-        let urlToTry = imageInfo.sourceUrl;
-        if (!util.isNullOrEmpty(imageInfo.wrappingUrl) 
-            && !ImageCollector.urlHasFragment(imageInfo.wrappingUrl)) {
-            urlToTry = imageInfo.wrappingUrl;
-        }
-        return ImageCollector.removeSizeParamsFromWordPressQuery(urlToTry);
+imagesToPackInEpub() {
+    return this.imagesToPack;
+}
+
+/*
+*  Hook point to allow picking between high and low res images.
+*/
+initialUrlToTry(imageInfo) {
+    let urlToTry = imageInfo.sourceUrl;
+    if (!util.isNullOrEmpty(imageInfo.wrappingUrl)
+        && !ImageCollector.urlHasFragment(imageInfo.wrappingUrl)) {
+        urlToTry = imageInfo.wrappingUrl;
     }
+    return ImageCollector.removeSizeParamsFromWordPressQuery(urlToTry);
+}
 
     static urlHasFragment(url) {
-        try {
-            return !util.isNullOrEmpty(new URL(url).hash);
-        } catch (error) {
-            return false;
-        }
+    try {
+        return !util.isNullOrEmpty(new URL(url).hash);
+    } catch (error) {
+        return false;
     }
-    
+}
+
     static removeSizeParamsFromWordPressQuery(originalUrl) {
-        let url = new URL(originalUrl);
-        let searchParams = url.searchParams;
-        if (!util.isNullOrEmpty(searchParams.toString()) && 
-            ImageCollector.isWordPressHostedFile(url.hostname) ) {
-            ImageCollector.removeSizeParamsFromSearch(searchParams);
-            return url.toString();
-        } else {
-            return originalUrl;
-        }
+    let url = new URL(originalUrl);
+    let searchParams = url.searchParams;
+    if (!util.isNullOrEmpty(searchParams.toString()) &&
+        ImageCollector.isWordPressHostedFile(url.hostname)) {
+        ImageCollector.removeSizeParamsFromSearch(searchParams);
+        return url.toString();
+    } else {
+        return originalUrl;
     }
+}
 
     static isWordPressHostedFile(hostname) {
-        return hostname.endsWith("files.wordpress.com") || hostname.endsWith(".wp.com");
-    }
+    return hostname.endsWith("files.wordpress.com") || hostname.endsWith(".wp.com");
+}
 
     static removeSizeParamsFromSearch(searchParams) {
-        searchParams.delete("w");
-        searchParams.delete("h");
-        searchParams.delete("resize");
-    }
+    searchParams.delete("w");
+    searchParams.delete("h");
+    searchParams.delete("resize");
+}
 
-    /**
-    *  Derived classes will override
-    *  Base version tells user there's a problem
-    */
-    selectImageUrlFromImagePage(dom) {
-        // try MediaWiki format
-        let div = dom.querySelector("div.fullMedia");
-        if (div !== null) {
-            let link = div.querySelector("a");
-            return (link === null) ? null : link.href;
-        }
-        return null;
+/**
+*  Derived classes will override
+*  Base version tells user there's a problem
+*/
+selectImageUrlFromImagePage(dom) {
+    // try MediaWiki format
+    let div = dom.querySelector("div.fullMedia");
+    if (div !== null) {
+        let link = div.querySelector("a");
+        return (link === null) ? null : link.href;
     }
+    return null;
+}
 
     async preprocessImageTags(content, parentPageUrl) {
-        if (this.userPreferences.skipImages.value) {
-            util.removeChildElementsMatchingSelector(content, "img, image");
-            return content;
-        } else {
-            return await ImageCollector.replaceHyperlinksToImagesWithImages(content, parentPageUrl);
-        }
+    if (this.userPreferences.skipImages.value) {
+        util.removeChildElementsMatchingSelector(content, "img, image");
+        return content;
+    } else {
+        return await ImageCollector.replaceHyperlinksToImagesWithImages(content, parentPageUrl);
     }
+}
 
     static async replaceHyperlinksToImagesWithImages(content, parentPageUrl) {
-        let toReplace = util.getElements(content, "a", ImageCollector.isHyperlinkToImage);
-        for (let hyperlink of toReplace.filter(h => !ImageCollector.linkContainsImageTag(h))) {
-            ImageCollector.replaceHyperlinkWithImg(hyperlink);
-        }
-        return await Imgur.expandGalleries(content, parentPageUrl);
+    let toReplace = util.getElements(content, "a", ImageCollector.isHyperlinkToImage);
+    for (let hyperlink of toReplace.filter(h => !ImageCollector.linkContainsImageTag(h))) {
+        ImageCollector.replaceHyperlinkWithImg(hyperlink);
     }
+    return await Imgur.expandGalleries(content, parentPageUrl);
+}
 
     /** @private */
     static isHyperlinkToImage(hyperlink) {
-        let extension = ImageCollector.getExtensionFromUrlFilename(hyperlink);
-        return extension === "png" ||
+    let extension = ImageCollector.getExtensionFromUrlFilename(hyperlink);
+    return extension === "png" ||
         extension === "jpg" ||
         extension === "jpeg" ||
         extension === "gif" ||
         extension === "svg";
-    }
+}
 
     /** @private */
     static getExtensionFromUrlFilename(hyperlink) {
-        let split = util.extractFilename(hyperlink).split(".");
-        return (split.length < 2) ? "" : split[split.length - 1];
-    }
+    let split = util.extractFilename(hyperlink).split(".");
+    return (split.length < 2) ? "" : split[split.length - 1];
+}
 
     /** @private */
     static linkContainsImageTag(hyperlink) {
-        return (hyperlink.querySelector("img") !== null);
-    }
+    return (hyperlink.querySelector("img") !== null);
+}
 
     /** @private */
     static replaceHyperlinkWithImg(hyperlink) {
-        let img = hyperlink.ownerDocument.createElement("img");
-        img.src = hyperlink.href;
-        hyperlink.replaceWith(img);
-    }
+    let img = hyperlink.ownerDocument.createElement("img");
+    img.src = hyperlink.href;
+    hyperlink.replaceWith(img);
+}
 }
 
 //==============================================================
@@ -681,7 +659,7 @@ class ImageTagReplacer {
      * @private
      */
     isDuplicateImageToRemove(imageInfo) {
-        return this.userPreferences.removeDuplicateImages.value && 
+        return this.userPreferences.removeDuplicateImages.value &&
             this.isElementInImageGallery() && (imageInfo.isOutsideGallery || imageInfo.isCover);
     }
 
