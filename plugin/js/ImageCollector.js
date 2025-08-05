@@ -329,41 +329,49 @@ class ImageCollector {
     runCompression(imageInfo, img) {
         var that = this;
         return new Promise(function(resolve, reject){
-            if (that.userPreferences.compressImages.value) 
+            let force = imageInfo.mediaType.indexOf("webp") != -1;
+            let compress = that.userPreferences.compressImages.value;
+            if (compress || force) 
             {
                 let c = document.createElement("canvas");
                 let ctx = c.getContext("2d");
                 let maxResolution = that.userPreferences.compressImagesMaxResolution.value;            
-                if (imageInfo.height > maxResolution || imageInfo.width > maxResolution)
-                {
-                    if (imageInfo.height > imageInfo.width)
+                
+                if (compress) {
+                    if (imageInfo.height > maxResolution || imageInfo.width > maxResolution)
                     {
-                        c.height = maxResolution;
-                        c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0)/maxResolution)));
+                        if (imageInfo.height > imageInfo.width)
+                        {
+                            c.height = maxResolution;
+                            c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0)/maxResolution)));
+                        }
+                        else
+                        {
+                            c.width = maxResolution;
+                            c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0)/maxResolution)));
+                        }
                     }
                     else
                     {
-                        c.width = maxResolution;
-                        c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0)/maxResolution)));
+                        c.height = imageInfo.height;
+                        c.width = imageInfo.width;
                     }
                 }
-                else
-                {
-                    c.height = imageInfo.height;
-                    c.width = imageInfo.width;
-                }
+                
+                let mime = compress ? "image/jpeg" : "image/png";
+                
                 ctx.drawImage(img, 0, 0, c.width, c.height);
                 c.toBlob(async (cBlob) => {
                     try {
                         imageInfo.height = c.height;
                         imageInfo.width = c.width;
-                        imageInfo.mediaType = "image/jpeg";
+                        imageInfo.mediaType = mime;
                         imageInfo.arraybuffer = await cBlob.arrayBuffer();
                         resolve();
                     } catch (e) {
                         reject();
                     }
-                }, "image/jpeg", 0.9);
+                }, mime, compress ? 0.9 : 1);
             }
             else
             {
