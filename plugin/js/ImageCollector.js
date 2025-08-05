@@ -342,24 +342,37 @@ class ImageCollector {
                     else {
                         c.height = imageInfo.height;
                         c.width = imageInfo.width;
-                    }
-                }
+                        let maxResolution = that.userPreferences.compressImagesMaxResolution.value;
 
-                let mime = compress ? "image/jpeg" : "image/png";
+                        c.height = imageInfo.height;
+                        c.width = imageInfo.width;
 
-                ctx.drawImage(img, 0, 0, c.width, c.height);
-                c.toBlob(async (cBlob) => {
-                    try {
-                        imageInfo.height = c.height;
-                        imageInfo.width = c.width;
-                        imageInfo.mediaType = outputType;
-                        imageInfo.arraybuffer = await cBlob.arrayBuffer();
-                        resolve();
-                    } catch (e) {
-                        reject();
-                    }
-                }, outputType, 0.9);
-            }, mime, compress ? 0.9 : 1);
+                        if (compress && (imageInfo.height > maxResolution || imageInfo.width > maxResolution)) {
+                            if (imageInfo.height > imageInfo.width) {
+                                c.height = maxResolution;
+                                c.width = Math.max(1, Math.round((imageInfo.width * 1.0) / ((imageInfo.height * 1.0) / maxResolution)));
+                            }
+                            else {
+                                c.width = maxResolution;
+                                c.height = Math.max(1, Math.round((imageInfo.height * 1.0) / ((imageInfo.width * 1.0) / maxResolution)));
+                            }
+                        }
+
+                        let mime = compress ? "image/jpeg" : "image/png";
+
+                        ctx.drawImage(img, 0, 0, c.width, c.height);
+                        c.toBlob(async (cBlob) => {
+                            try {
+                                imageInfo.height = c.height;
+                                imageInfo.width = c.width;
+                                imageInfo.mediaType = outputType;
+                                imageInfo.arraybuffer = await cBlob.arrayBuffer();
+                                resolve();
+                            } catch (e) {
+                                reject();
+                            }
+                        }, outputType, 0.9);
+                    }, mime, compress ? 0.9 : 1);
     }
             else {
     resolve();
