@@ -322,31 +322,31 @@ class ImageCollector {
 
     runCompression(imageInfo, img) {
         var that = this;
-        return new Promise(function(resolve, reject){
+        return new Promise(function(resolve, reject) {
             let force = imageInfo.mediaType.indexOf("webp") != -1;
             let compress = that.userPreferences.compressImages.value;
             if (compress || force)
             {
-                let outputType = "image/jpeg";
+                let mime = "image/jpeg";
                 switch (this.userPreferences.compressImagesType.value) {
                     case "auto":
-                        outputType = util.detectMimeType(imageInfo.getBase64(25));
+                        mime = util.detectMimeType(imageInfo.getBase64(25));
                         break;
                     case "webp":
-                        outputType = "image/webp";
+                        mime = "image/webp";
                         break;
                     case "png":
-                        outputType = "image/png";
+                        mime = "image/png";
                         break;
                     case "jpg":
                     default:
-                        outputType = "image/jpeg";
+                        mime = "image/jpeg";
                         break;
                 }
 
                 if (imageInfo.isCover && this.userPreferences.compressImagesJpgCover.value)
                 {
-                    outputType = "image/jpeg";
+                    mime = "image/jpeg";
                 }
                 let c = document.createElement("canvas");
                 let ctx = c.getContext("2d");
@@ -369,7 +369,7 @@ class ImageCollector {
                     }
                 }
                 
-                let mime = compress ? "image/jpeg" : "image/png";
+                mime = compress ? "image/jpeg" : "image/png";
                 
                 ctx.drawImage(img, 0, 0, c.width, c.height);
                 c.toBlob(async (cBlob) => {
