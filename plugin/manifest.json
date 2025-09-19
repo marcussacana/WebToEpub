@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WebToEpub",
-  "version": "1.0.9.22",
+  "version": "1.0.9.23",
   "default_locale": "en",
   "icons": {
     "128": "book128.png"
@@ -27,7 +27,7 @@
   "incognito": "split",
   "browser_specific_settings": {
     "gecko": {
-      "id": "WebToEpub@Baka-tsuki.org",
+      "id": "WebToEpub@marcussacana.github.io",
       "strict_min_version": "115.0"
     }
   },
